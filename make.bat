@@ -143,11 +143,11 @@ set RES=
 :: 排除的文件
 set EXC=
 
-:: 临时文件路径
-set TP=tmp
-
 :: 目标文件路径
 set OUT=.
+
+:: 临时文件路径
+set TP=tmp
 
 :: 编译参数
 set CF=
