@@ -111,10 +111,10 @@
 :: /LTCG:incremental使用快速连接生成代码
 ::-----------------------------------------------------
 :: 不显示命令字符串
-@echo off
+echo off
 
 :: 设置屏幕大小
-:: mode con cols=100 lines=300
+mode con cols=100 lines=1000
 
 :: 字体颜色
 color 0A
@@ -158,41 +158,48 @@ set LF=gdi32.lib User32.lib Advapi32.lib Shell32.lib
 ::-----------------------------------------------------
 :: 读取配置文件make.ini
 
-:: 没有有参数1
+:: 没有有参数1,
 if "%1" == "" (
-    echo "don't have param"
+    echo "don't have make.ini path"
     pause
     exit
 )
 
+set CMD=""
+
+:: 没有有参数2
+if "%2" neq "" (
+    set CMD=%2
+)
+
 :: 保存参数1,make.ini的目录
-set DIR=%1
+set MAKE_INI_PATH=%1
 
 :: 将\替换成空格,因为for不能用\分割字符
-set DIR=%DIR:\= %
+set MAKE_INI_PATH=%MAKE_INI_PATH:\= %
 
 :: 延时变量扩展
 setLocal EnableDelayedExpansion
 
 :: 计算目录层数
-for %%i in (%DIR%) do (
-    set /a NUM+=1
+for %%i in (%MAKE_INI_PATH%) do (
+    set /a DIR_NUM+=1
 )
 
 :: 倒序循环
-for /L %%i in (%NUM%, -1, 1) do (
+for /L %%i in (%DIR_NUM%, -1, 1) do (
     set P=
     set T=
     set j=0
     :: 拼接路径
-    for %%d in (%DIR%) do (
+    for %%d in (%MAKE_INI_PATH%) do (
         set     P=!P!!T!%%d
         set     T=\
         set /a j+=1
         if "!j!" == "%%i" (
             :: 查找make.ini文件,for循环内不能有标签
             if exist "!P!\make.ini" (
-                goto find_make_ini
+                goto FIND_MAKE_INI
             )
         )
     )
@@ -203,9 +210,9 @@ echo "don't have make.ini"
 pause
 exit
 
-:find_make_ini
+:FIND_MAKE_INI
 
-:: 设置根目录
+:: 代码根目录
 set ROOT=!P!
 
 :: 进入根目录
@@ -306,14 +313,36 @@ if "%EXT%" == "exe" (
 
 ::-----------------------------------------------------
 
-:: 设置系统路径
-set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
+:: 运行
+if "%CMD%" == "run" (
+    if "%EXT%" neq "exe" (
+        echo "It is not exe"
+        pause
+        exit
+    ) else (
+        if exist "%ROOT%\%OUT%" (
+            cd %ROOT%\%OUT%
+        ) else (
+            cd %OUT%
+        )
+        start %NAME%.exe
+        exit
+    )
+)
+
+:: 清空
+if "%CMD%" == "clean" (
+    rd /q/s "%TP%"
+)
+
+:: 重新构建
+if "%CMD%" == "rebuild" (
+    del /q/s "%TP%\*"
+)
 
 :: 检查临目录
 if not exist "%TP%" (
     mkdir "%TP%"
-) else (
-    del /q "%TP%\*"
 )
 
 :: 资源文件
@@ -321,6 +350,11 @@ if "%RES%" neq "" (
     %TOOL_RC% %RF%
     set OBJ=%OBJ% %TP%\%NAME%.res
 )
+
+::-----------------------------------------------------
+
+:: 设置系统路径
+set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
 
 :: 编译文件,多个源目录
 for %%D in (%SRC%) do (
@@ -366,5 +400,7 @@ if "%OUT%" neq "" (
     move "%TP%\%NAME%.%EXT%" "%OUT%"
 )
 
-:: 暂停
-pause
+:: 不成功暂停
+if %errorlevel% neq 0 (
+    pause
+)
