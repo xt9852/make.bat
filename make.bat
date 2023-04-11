@@ -333,6 +333,7 @@ if "%CMD%" == "run" (
 :: 清空
 if "%CMD%" == "clean" (
     rd /q/s "%TP%"
+    exit
 )
 
 :: 重新构建
@@ -345,16 +346,16 @@ if not exist "%TP%" (
     mkdir "%TP%"
 )
 
-:: 资源文件
-if "%RES%" neq "" (
-    %TOOL_RC% %RF%
-    set OBJ=%OBJ% %TP%\%NAME%.res
-)
-
 ::-----------------------------------------------------
 
 :: 设置系统路径
 set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
+
+:: 编译资源文件
+if "%RES%" neq "" (
+    %TOOL_RC% %RF%
+    set OBJ=%OBJ% %TP%\%NAME%.res
+)
 
 :: 编译文件,多个源目录
 for %%D in (%SRC%) do (
