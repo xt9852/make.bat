@@ -396,12 +396,9 @@ for %%D in (%SRC%) do (
 :: 连接文件
 %TOOL_LNK% %OBJ% %LF%
 
-:: 输出目录
-if "%OUT%" neq "" (
-    move "%TP%\%NAME%.%EXT%" "%OUT%"
-)
-
-:: 不成功暂停
+:: 不成功暂停,成功移动文件到输出目录
 if %errorlevel% neq 0 (
     pause
+) else if "%OUT%" neq "" (
+    move "%TP%\%NAME%.%EXT%" "%OUT%"
 )
