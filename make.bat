@@ -396,9 +396,20 @@ for %%D in (%SRC%) do (
 :: 连接文件
 %TOOL_LNK% %OBJ% %LF%
 
-:: 不成功暂停,成功移动文件到输出目录
+:: 不成功暂停
 if %errorlevel% neq 0 (
     pause
-) else if "%OUT%" neq "" (
-    move "%TP%\%NAME%.%EXT%" "%OUT%"
+    exit
+)
+
+set ERR=0
+
+::移动文件到输出目录
+if "%OUT%" neq "" (
+    move /y "%TP%\%NAME%.%EXT%" "%OUT%" > "%TP%\move.txt"
+    for /f "tokens=2 delims= " %%i in (%TP%\move.txt) do (set ERR=%%i)
+    if "!ERR!" neq "1" (
+        pause
+        exit
+    )
 )
