@@ -402,13 +402,15 @@ if %errorlevel% neq 0 (
     exit
 )
 
-set ERR=0
-
 ::移动文件到输出目录
 if "%OUT%" neq "" (
-    move /y "%TP%\%NAME%.%EXT%" "%OUT%" > "%TP%\move.txt"
-    for /f "tokens=2 delims= " %%i in (%TP%\move.txt) do (set ERR=%%i)
+    ::move失败返回的errorlevel也是0
+    set ERR=0
+    
+    for /f "tokens=2 delims= " %%i in ('move /y "%TP%\%NAME%.%EXT%" "%OUT%"') do (set ERR=%%i)
+
     if "!ERR!" neq "1" (
+        echo move /y "%TP%\%NAME%.%EXT%" "%OUT%" 失败
         pause
         exit
     )
