@@ -134,7 +134,7 @@ set DEBUG=n
 :: 字符集:mbcs,unicode,utf8
 set CHARSET=utf8
 
-:: 源文件路径
+:: 源文件路径,可多个路径
 set SRC=.
 
 :: 资源描述文件
@@ -147,7 +147,7 @@ set EXC=
 set OUT=.
 
 :: 临时文件路径
-set TP=tmp
+set TMP=tmp
 
 :: 编译参数
 set CF=
@@ -156,21 +156,25 @@ set CF=
 set LF=gdi32.lib User32.lib Advapi32.lib Shell32.lib
 
 ::-----------------------------------------------------
-:: 读取配置文件make.ini
+:: BAT参数
 
-:: 没有有参数1,
+:: 执行bat时没带参数1,make.ini的路径
 if "%1" == "" (
     echo "don't have make.ini path"
     pause
     exit
 )
 
-set CMD=""
-
-:: 没有有参数2
+:: 参数2,命令:run,clean,rebuild
 if "%2" neq "" (
     set CMD=%2
 )
+
+echo path=%1
+echo cmd=%CMD%
+
+::-----------------------------------------------------
+:: 读取配置文件make.ini
 
 :: 保存参数1,make.ini的目录
 set MAKE_INI_PATH=%1
@@ -178,29 +182,21 @@ set MAKE_INI_PATH=%1
 :: 将\替换成空格,因为for不能用\分割字符
 set MAKE_INI_PATH=%MAKE_INI_PATH:\= %
 
+:: 计算目录层数
+for %%i in (%MAKE_INI_PATH%) do ( set /a DIR_NUM += 1 )
+
 :: 延时变量扩展
 setLocal EnableDelayedExpansion
 
-:: 计算目录层数
-for %%i in (%MAKE_INI_PATH%) do (
-    set /a DIR_NUM+=1
-)
-
-:: 倒序循环
-for /L %%i in (%DIR_NUM%, -1, 1) do (
-    set P=
-    set T=
+:: 从子目录向上查找make.ini文件
+for /l %%i in (%DIR_NUM%, -1, 1) do (
     set j=0
-    :: 拼接路径
+    set ROOT=
     for %%d in (%MAKE_INI_PATH%) do (
-        set     P=!P!!T!%%d
-        set     T=\
         set /a j+=1
+        set ROOT=!ROOT!%%d\
         if "!j!" == "%%i" (
-            :: 查找make.ini文件,for循环内不能有标签
-            if exist "!P!\make.ini" (
-                goto FIND_MAKE_INI
-            )
+            if exist "!ROOT!make.ini" ( goto FIND_MAKE_INI )
         )
     )
 )
@@ -210,17 +206,15 @@ echo "don't have make.ini"
 pause
 exit
 
+:: 找到make.ini
 :FIND_MAKE_INI
 
-:: 代码根目录
-set ROOT=!P!
-
-:: 进入根目录
-cd %ROOT%
+echo !ROOT!make.ini
 
 :: 读取make.ini,以=分割字符,并设置变量
-for /f "tokens=1,2 delims==" %%a in (!P!\make.ini) do (
+for /f "tokens=1,2 delims==" %%a in (!ROOT!make.ini) do (
     set %%a=%%b
+    echo %%a=%%b
 )
 
 ::-----------------------------------------------------
@@ -253,7 +247,7 @@ set INCLUDE=/I"%PATH_MSVC_INCLUDE%" /I"%PATH_MSVC_INCLUDE_MFC%" ^
 
 :: 编译参数
 set CF=%INCLUDE% /nologo /c /Gd /FC /W3 /WX /GS- /sdl- /EHsc- /Gm- /permissive- /Zc:wchar_t /Zc:inline /Zc:forScope ^
-/fp:precise /diagnostics:column /errorReport:prompt /Fo:"%ROOT%\%TP%/" /Fd:"%ROOT%\%TP%/" %CF%
+/fp:precise /diagnostics:column /errorReport:prompt /Fo:"%ROOT%%TMP%/" /Fd:"%ROOT%%TMP%/" %CF%
 
 :: 构建类型:debug,release
 if "%DEBUG%" == "y" (
@@ -279,7 +273,7 @@ if "%CHARSET%" == "mbcs" (
 )
 
 :: 编译资源参数
-set RF=%INCLUDE% /nologo /fo"%ROOT%\%TP%\%NAME%.res" "%ROOT%\%RES%"
+set RF=%INCLUDE% /nologo /fo"%ROOT%\%TMP%\%NAME%.res" "%ROOT%\%RES%"
 
 ::-----------------------------------------------------
 :: 连接程序参数
@@ -299,11 +293,11 @@ if "%DEBUG%" == "y" (
 
 :: 目标类型:exe,dll,lib
 if "%EXT%" == "exe" (
-    set LF=%LF% /OUT:%TP%\%NAME%.exe
+    set LF=%LF% /OUT:%TMP%\%NAME%.exe
 ) else if "%EXT%" == "dll" (
-    set LF=%LF% /OUT:%TP%\%NAME%.dll /DLL
+    set LF=%LF% /OUT:%TMP%\%NAME%.dll /DLL
 ) else if "%EXT%" == "lib" (
-    set LF=/nologo /OUT:%TP%\%NAME%.lib
+    set LF=/nologo /OUT:%TMP%\%NAME%.lib
     set TOOL_LNK=%TOOL_LIB%
 ) else (
     echo EXT=%EXT% error
@@ -312,83 +306,81 @@ if "%EXT%" == "exe" (
 )
 
 ::-----------------------------------------------------
+::执行命令
 
 :: 运行
 if "%CMD%" == "run" (
-    if "%EXT%" neq "exe" (
-        echo "It is not exe"
-        pause
-        exit
+    if exist "%ROOT%%OUT%" (
+        cd %ROOT%%OUT%
     ) else (
-        if exist "%ROOT%\%OUT%" (
-            cd %ROOT%\%OUT%
-        ) else (
-            cd %OUT%
-        )
-        start %NAME%.exe
-        exit
+        cd %OUT%
     )
+    start %NAME%.exe
+    exit
 )
 
 :: 清空
 if "%CMD%" == "clean" (
-    rd /q/s "%TP%"
+    rd /q/s "%ROOT%%TMP%"
     exit
 )
 
 :: 重新构建
 if "%CMD%" == "rebuild" (
-    del /q/s "%TP%\*"
+    del /q/s "%ROOT%%TMP%\*"
 )
 
 :: 检查临目录
-if not exist "%TP%" (
-    mkdir "%TP%"
+if not exist "%ROOT%%TMP%" (
+    mkdir "%ROOT%%TMP%"
 )
 
 ::-----------------------------------------------------
+
+:: 进入根目录
+cd %ROOT%
 
 :: 设置系统路径
 set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
 
 :: 编译资源文件
-if "%RES%" neq "" (
+if "%ROOT%%RES%" neq "" (
     %TOOL_RC% %RF%
-    set OBJ=%OBJ% %TP%\%NAME%.res
+    set OBJ=%ROOT%%TMP%\%NAME%.res
 )
 
 :: 编译文件,多个源目录
 for %%D in (%SRC%) do (
-    for /f %%F in ('dir /s/b %%D') do (
-        set E=%%~xF
-        set FIND=
+    for /f %%F in ('dir /s/b %ROOT%%%D') do (
+        set FILE=%%F
+        set FIND_FILE=''
 
-        :: 比较扩展名,*.c不准确
-        if "!E!" == ".c" (
-            set FIND=1
-        )
-        if "!E!" == ".cpp" (
-            set FIND=1
-        )
-        if "!FIND!" == "1" (
-            set R=%%F
-            set R=!R:%ROOT%\=!
+        :: 比较扩展名,"*.c"不准确,会将cxx都选出
+        if "%%~xF" == ".c"   (set FIND_FILE=1)
+        if "%%~xF" == ".cpp"   (set FIND_FILE=1)
 
-            :: 第一个目录名
-            for /f "delims=\" %%E in ('echo !R!') do (
-                :: 排除目录
-                echo %EXC% | findstr %%E > nul && (
-                    echo !R! exclude path
-                ) || (
-                    :: 排除文件
-                    echo %EXC% | findstr %%~nxF > nul && (
-                        echo %%~nxF exclude file
-                    ) || (
-                        %TOOL_CC% !R! /I"!CD!" %CF%
-                        set "OBJ=!OBJ! %TP%\%%~nF.obj"
-                    )
-                )
+        if "!FIND_FILE!" == "1" (
+            ::得到文件相对路径名
+            set DIR=
+            set FILENAME=!FILE:%ROOT%=!
+
+            :: 得到第一个目录名
+            for /f "delims=\" %%E in ('echo !FILENAME!') do (set DIR=%%E)
+            echo %EXC% | findstr !DIR! > nul && (echo !FILENAME! exclude dir && set FIND_FILE=0)
+            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set FIND_FILE=0)
+        )
+
+        if "!FIND_FILE!" == "1" (
+            set RET=''
+            ::echo '%TOOL_CC% !FILE! /I"!CD!" %CF%'
+            for /f "tokens=*" %%a in ('%TOOL_CC% !FILE! /I"!CD!" %CF%') do (
+                echo %%a
+                set RET=%%a
             )
+
+            if "!RET!" neq "%%~nxF" (pause && exit)
+
+            set "OBJ=!OBJ! %TMP%\%%~nF.obj"
         )
     )
 )
@@ -405,10 +397,10 @@ if %errorlevel% neq 0 (
 ::移动文件到输出目录
 ::move失败返回的errorlevel也是0
 set ERR=0
-for /f "tokens=2 delims= " %%i in ('move /y "%TP%\%NAME%.%EXT%" "%OUT%"') do (set ERR=%%i)
+for /f "tokens=2 delims= " %%i in ('move /y "%TMP%\%NAME%.%EXT%" "%OUT%"') do (set ERR=%%i)
 
 if "!ERR!" neq "1" (
-    echo move /y "%TP%\%NAME%.%EXT%" "%OUT%" 失败
+    echo move /y "%TMP%\%NAME%.%EXT%" "%OUT%" 失败
     pause
     exit
 )
