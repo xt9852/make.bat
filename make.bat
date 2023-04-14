@@ -122,7 +122,7 @@ set PATH_KITS_LIB_UM=%MSVC_PATH_ROOT%\Windows Kits\10.0.22000.0\Lib\um\%ARCH%
 set PATH_KITS_LIB_UCRT=%MSVC_PATH_ROOT%\Windows Kits\10.0.22000.0\Lib\ucrt\%ARCH%
 
 ::-----------------------------------------------------
-:: 编译程序参数
+:: 设置编译参数
 
 :: 包含路径
 set INCLUDE=/I"%PATH_MSVC_INCLUDE%" /I"%PATH_MSVC_INCLUDE_MFC%" /I"%PATH_KITS_INCLUDE_UM%" /I"%PATH_KITS_INCLUDE_UCRT%" /I"%PATH_KITS_INCLUDE_SHARED%"
@@ -143,7 +143,7 @@ if "%CHARSET%" == "mbcs" (set CF=%CF% /D"_MBCS") else if "%CHARSET%" == "unicode
 set RF=%INCLUDE% /nologo /fo"%TMP%\%NAME%.res" "%RES%"
 
 ::-----------------------------------------------------
-:: 连接程序参数
+:: 设置连接参数
 
 :: 包含路径
 set LIB=/LIBPATH:"%PATH_MSVC_LIB%" /LIBPATH:"%PATH_MSVC_LIB_MFC%" /LIBPATH:"%PATH_KITS_LIB_UM%" /LIBPATH:"%PATH_KITS_LIB_UCRT%"
