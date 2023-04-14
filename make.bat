@@ -2,114 +2,12 @@
 :: Copyright:   XT Tech. Co., Ltd.
 :: File:        make.bat
 :: Author:      张海涛
-:: Version:     1.0.0
+:: Version:     2.0.0
 :: Encode:      ANSI
 :: Date:        2022-01-17
-:: Description: 调用nmake.exe编译工程
+:: Description: 调用VS编译工程
 ::-----------------------------------------------------
-:: 编译MFC程序需要将下面的代码加入代码中
-:: #ifdef NMAKE
-::  // 来自于Microsoft Visual Studio\2022\VC\Tools\MSVC\14.30.30705\atlmfc\src\mfc\winmain.cpp
-::  int AFXAPI AfxWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-::      _In_ LPTSTR lpCmdLine, int nCmdShow)
-::  {
-::      ASSERT(hPrevInstance == NULL);
-::
-::      int nReturnCode = -1;
-::      CWinThread* pThread = AfxGetThread();
-::      CWinApp* pApp = AfxGetApp();
-::
-::      // AFX internal initialization
-::      if (!AfxWinInit(hInstance, hPrevInstance, lpCmdLine, nCmdShow))
-::          goto InitFailure;
-::
-::      // App global initializations (rare)
-::      if (pApp != NULL && !pApp->InitApplication())
-::          goto InitFailure;
-::
-::      // Perform specific initializations
-::      if (!pThread->InitInstance())
-::      {
-::          if (pThread->m_pMainWnd != NULL)
-::          {
-::              TRACE(traceAppMsg, 0, "Warning: Destroying non-NULL m_pMainWnd\n");
-::              pThread->m_pMainWnd->DestroyWindow();
-::          }
-::          nReturnCode = pThread->ExitInstance();
-::          goto InitFailure;
-::      }
-::      nReturnCode = pThread->Run();
-::
-::  InitFailure:
-::  #ifdef _DEBUG
-::      // Check for missing AfxLockTempMap calls
-::      if (AfxGetModuleThreadState()->m_nTempMapLock != 0)
-::      {
-::          TRACE(traceAppMsg, 0, "Warning: Temp map lock count non-zero (%ld).\n",
-::              AfxGetModuleThreadState()->m_nTempMapLock);
-::      }
-::      AfxLockTempMaps();
-::      AfxUnlockTempMaps(-1);
-::  #endif
-::
-::      AfxWinTerm();
-::      return nReturnCode;
-::  }
-::
-::  // 来自于Microsoft Visual Studio\2022\VC\Tools\MSVC\14.30.30705\atlmfc\src\mfc\appmodule.cpp
-::  extern "C" int WINAPI
-::  _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-::      _In_ LPTSTR lpCmdLine, int nCmdShow)
-::  #pragma warning(suppress: 4985)
-::  {
-::      // call shared/exported WinMain
-::      return AfxWinMain(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
-::  }
-:: #endif
-::-----------------------------------------------------
-:: 编译参数
-:: /c                    只编译,不链接
-:: /Gd                   调用约定:_cdecl
-:: /W3                   警告等级3
-:: /WX                   将警告视为错误
-:: /FC                   使用完整路径
-:: /GS                   启用安全检查
-:: /sdl                  启用SDL检查
-:: /EHsc                 启用C++异常
-:: /Gm-                  停用最小重新生成
-:: /nologo               不显示版权信息
-:: /permissive-          符合模式
-:: /Zc:wchar_t           将wchar_t视为类型
-:: /Zc:inline            移除未引用代码和数据
-:: /Zc:forScope          for循环范围检查
-:: /fp:precise           浮点模型:精度
-:: /diagnostics:column   诊断格式:列
-:: /errorReport:prompt   错误报告:立即提示
-:: /Fo:"$(TMP)/"         输出路径
-:: /Fd:"$(TMP)/"         vc***.pdb路径
-:: /D "_WINDOWS"
-:: /utf-8                UTF8编译
-::----------debug--------
-:: /JMC                  支持仅我的代码调试
-:: /ZI                   启用“编辑并继续”调试信息
-:: /Od                   禁用优化
-:: /RTC1                 运行时检查
-::---------release-------
-:: /Zi                   启用调试信息
-:: /O2                   最大化速度
-:: /Oi                   启用内部函数
-:: /GL                   启用链接时代码生成
-:: /Gy                   分隔链接器函数
-::-----------------------------------------------------
-:: 连接参数
-:: /LIBPATH:        lib文件包在路径
-:: /MANIFEST        生成清单
-:: /NXCOMPAT        数据执行保护
-:: /TLBID:1         资源ID
-:: /INCREMENTAL:NO  增量连接
-:: /OPT:REF         引用
-:: /LTCG:incremental使用快速连接生成代码
-::-----------------------------------------------------
+
 :: 不显示命令字符串
 echo off
 
@@ -140,14 +38,14 @@ set SRC=.
 :: 资源描述文件
 set RES=
 
-:: 排除的文件
+:: 排除的文件,目录
 set EXC=
 
 :: 目标文件路径
 set OUT=.
 
 :: 临时文件路径
-set TMP=tmp
+set TMP=.\tmp
 
 :: 编译参数
 set CF=
@@ -158,28 +56,18 @@ set LF=gdi32.lib User32.lib Advapi32.lib Shell32.lib
 ::-----------------------------------------------------
 :: BAT参数
 
-:: 执行bat时没带参数1,make.ini的路径
-if "%1" == "" (
-    echo "don't have make.ini path"
-    pause
-    exit
-)
+if "%1" == "" (echo "don't have make.ini path" && pause && exit)
+if "%2" == "" (echo "don't have cmd (all|run|clean|[filename])" && pause && exit)
 
-:: 参数2,命令:run,clean,rebuild
-if "%2" neq "" (
-    set CMD=%2
-)
-
-echo path=%1
-echo cmd=%CMD%
+echo %1
+echo %2
 
 ::-----------------------------------------------------
 :: 读取配置文件make.ini
 
-:: 保存参数1,make.ini的目录
 set MAKE_INI_PATH=%1
 
-:: 将\替换成空格,因为for不能用\分割字符
+:: 将路径中的'\'替换成空格
 set MAKE_INI_PATH=%MAKE_INI_PATH:\= %
 
 :: 计算目录层数
@@ -196,26 +84,21 @@ for /l %%i in (%DIR_NUM%, -1, 1) do (
         set /a j+=1
         set ROOT=!ROOT!%%d\
         if "!j!" == "%%i" (
-            if exist "!ROOT!make.ini" ( goto FIND_MAKE_INI )
+            if exist "!ROOT!make.ini" (echo !ROOT!make.ini && goto FIND_MAKE_INI)
         )
     )
 )
 
-:: 没有找到make.ini
 echo "don't have make.ini"
 pause
 exit
 
-:: 找到make.ini
 :FIND_MAKE_INI
 
-echo !ROOT!make.ini
+cd !ROOT!
 
 :: 读取make.ini,以=分割字符,并设置变量
-for /f "tokens=1,2 delims==" %%a in (!ROOT!make.ini) do (
-    set %%a=%%b
-    echo %%a=%%b
-)
+for /f "tokens=1,2 delims==" %%a in (make.ini) do (set "%%a=%%b" && echo %%a=%%b)
 
 ::-----------------------------------------------------
 :: 编译工具
@@ -242,38 +125,22 @@ set PATH_KITS_LIB_UCRT=%MSVC_PATH_ROOT%\Windows Kits\10.0.22000.0\Lib\ucrt\%ARCH
 :: 编译程序参数
 
 :: 包含路径
-set INCLUDE=/I"%PATH_MSVC_INCLUDE%" /I"%PATH_MSVC_INCLUDE_MFC%" ^
-/I"%PATH_KITS_INCLUDE_UM%" /I"%PATH_KITS_INCLUDE_UCRT%" /I"%PATH_KITS_INCLUDE_SHARED%"
+set INCLUDE=/I"%PATH_MSVC_INCLUDE%" /I"%PATH_MSVC_INCLUDE_MFC%" /I"%PATH_KITS_INCLUDE_UM%" /I"%PATH_KITS_INCLUDE_UCRT%" /I"%PATH_KITS_INCLUDE_SHARED%"
 
 :: 编译参数
-set CF=%INCLUDE% /nologo /c /Gd /FC /W3 /WX /GS- /sdl- /EHsc- /Gm- /permissive- /Zc:wchar_t /Zc:inline /Zc:forScope ^
-/fp:precise /diagnostics:column /errorReport:prompt /Fo:"%ROOT%%TMP%/" /Fd:"%ROOT%%TMP%/" %CF%
-
-:: 构建类型:debug,release
-if "%DEBUG%" == "y" (
-    set CF=%CF% /D"_DEBUG" /JMC /ZI /Od /RTC1
-) else (
-    set CF=%CF% /D"NDEBUG" /Zi /O2 /Oi /GL /Gy
-)
+set CF=/nologo /c /Gd /FC /W3 /WX /GS- /sdl- /EHsc- /Gm- /permissive- /Zc:wchar_t /Zc:inline /Zc:forScope /fp:precise /diagnostics:column /errorReport:prompt /Fo:"%TMP%/" /Fd:"%TMP%/" %CF% %INCLUDE%
 
 :: 程序架构类型:x64,x86
-if "%ARCH%" == "x64" (
-    set CF=%CF% /D"_WINDOWS" /D"_WIN64" /D"X64"
-) else (
-    set CF=%CF% /D"_WINDOWS" /D"_WIN32" /D"WIN32"
-)
+if "%ARCH%" == "x64" (set CF=%CF% /D"_WINDOWS" /D"_WIN64" /D"X64") else (set CF=%CF% /D"_WINDOWS" /D"_WIN32" /D"WIN32")
+
+:: 构建类型:debug,release
+if "%DEBUG%" == "y" (set CF=%CF% /D"_DEBUG" /JMC /ZI /Od /RTC1) else (set CF=%CF% /D"NDEBUG" /Zi /O2 /Oi /GL /Gy)
 
 :: 字符集类型:mbcs,unicode,utf8
-if "%CHARSET%" == "mbcs" (
-    set CF=%CF% /D"_MBCS"
-) else if "%CHARSET%" == "unicode" (
-    set CF=%CF% /D"_UNICODE" /D"UNICODE"
-) else (
-    set CF=%CF% /D"_UNICODE" /D"UNICODE" /utf-8
-)
+if "%CHARSET%" == "mbcs" (set CF=%CF% /D"_MBCS") else if "%CHARSET%" == "unicode" (set CF=%CF% /D"_UNICODE" /D"UNICODE") else (set CF=%CF% /D"_UNICODE" /D"UNICODE" /utf-8)
 
 :: 编译资源参数
-set RF=%INCLUDE% /nologo /fo"%ROOT%\%TMP%\%NAME%.res" "%ROOT%\%RES%"
+set RF=%INCLUDE% /nologo /fo"%TMP%\%NAME%.res" "%RES%"
 
 ::-----------------------------------------------------
 :: 连接程序参数
@@ -285,122 +152,76 @@ set LIB=/LIBPATH:"%PATH_MSVC_LIB%" /LIBPATH:"%PATH_MSVC_LIB_MFC%" /LIBPATH:"%PAT
 set LF=%LF% %LIB% /nologo /MANIFEST /NXCOMPAT /ERRORREPORT:PROMPT /TLBID:1
 
 :: 构建类型:debug,release
-if "%DEBUG%" == "y" (
-    set LF=%LF% /DEBUG /INCREMENTAL
-) else (
-    set LF=%LF% /INCREMENTAL:NO /OPT:REF /LTCG:incremental
-)
+if "%DEBUG%" == "y" (set LF=%LF% /DEBUG /INCREMENTAL) else (set LF=%LF% /INCREMENTAL:NO /OPT:REF /LTCG:incremental)
 
 :: 目标类型:exe,dll,lib
-if "%EXT%" == "exe" (
-    set LF=%LF% /OUT:%TMP%\%NAME%.exe
-) else if "%EXT%" == "dll" (
-    set LF=%LF% /OUT:%TMP%\%NAME%.dll /DLL
-) else if "%EXT%" == "lib" (
-    set LF=/nologo /OUT:%TMP%\%NAME%.lib
-    set TOOL_LNK=%TOOL_LIB%
-) else (
-    echo EXT=%EXT% error
-    pause
-    exit
-)
+if "%EXT%" == "exe" (set LF=%LF% /OUT:%TMP%\%NAME%.exe) else if "%EXT%" == "dll" (set LF=%LF% /OUT:%TMP%\%NAME%.dll /DLL) else if "%EXT%" == "lib" (set LF=/nologo /OUT:%TMP%\%NAME%.lib && set TOOL_LNK=%TOOL_LIB%) else (echo EXT="%EXT% error" && pause && exit)
 
 ::-----------------------------------------------------
 ::执行命令
 
-:: 运行
-if "%CMD%" == "run" (
-    if exist "%ROOT%%OUT%" (
-        cd %ROOT%%OUT%
-    ) else (
-        cd %OUT%
-    )
-    start %NAME%.exe
-    exit
-)
+if "%2" == "all" (del /q/s "%ROOT%%TMP%\*")
+if "%2" == "run" (start %OUT%\%NAME%.exe && exit)
+if "%2" == "clean" (rd /q/s "%TMP%" && exit)
 
-:: 清空
-if "%CMD%" == "clean" (
-    rd /q/s "%ROOT%%TMP%"
-    exit
-)
-
-:: 重新构建
-if "%CMD%" == "rebuild" (
-    del /q/s "%ROOT%%TMP%\*"
-)
-
-:: 检查临目录
-if not exist "%ROOT%%TMP%" (
-    mkdir "%ROOT%%TMP%"
-)
+if not exist "%TMP%" (mkdir "%TMP%")
 
 ::-----------------------------------------------------
+:: 编译文件
 
-:: 进入根目录
-cd %ROOT%
-
-:: 设置系统路径
 set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
 
 :: 编译资源文件
-if "%ROOT%%RES%" neq "" (
-    %TOOL_RC% %RF%
-    set OBJ=%ROOT%%TMP%\%NAME%.res
-)
+if "%RES%" neq "" (%TOOL_RC% %RF% && set OBJ=%TMP%\%NAME%.res)
 
 :: 编译文件,多个源目录
 for %%D in (%SRC%) do (
-    for /f %%F in ('dir /s/b %ROOT%%%D') do (
-        set FILE=%%F
-        set FIND_FILE=''
+    for /f %%F in ('dir /s/b %%D') do (
+        set COMPILE=
 
-        :: 比较扩展名,"*.c"不准确,会将cxx都选出
-        if "%%~xF" == ".c"   (set FIND_FILE=1)
-        if "%%~xF" == ".cpp"   (set FIND_FILE=1)
+        :: 比较扩展名
+        if "%%~xF" == ".c"   (set COMPILE=1)
+        if "%%~xF" == ".cpp"   (set COMPILE=1)
 
-        if "!FIND_FILE!" == "1" (
+        if "!COMPILE!" == "1" (
+            set FILE=%%F
+
             ::得到文件相对路径名
-            set DIR=
             set FILENAME=!FILE:%ROOT%=!
 
-            :: 得到第一个目录名
+            :: 得到第一个目录名,检查是否需要排除
             for /f "delims=\" %%E in ('echo !FILENAME!') do (set DIR=%%E)
-            echo %EXC% | findstr !DIR! > nul && (echo !FILENAME! exclude dir && set FIND_FILE=0)
-            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set FIND_FILE=0)
+            echo %EXC% | findstr !DIR! > nul && (echo !FILENAME! exclude dir && set COMPILE=0)
+            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set COMPILE=0)
         )
 
-        if "!FIND_FILE!" == "1" (
-            set RET=''
-            ::echo '%TOOL_CC% !FILE! /I"!CD!" %CF%'
-            for /f "tokens=*" %%a in ('%TOOL_CC% !FILE! /I"!CD!" %CF%') do (
-                echo %%a
-                set RET=%%a
-            )
-
-            if "!RET!" neq "%%~nxF" (pause && exit)
+        if "!COMPILE!" == "1" (
+            set COMPILE=
+            if "%2" == "all" (set COMPILE=1)
+            if "%2" == "!FILE!" (set COMPILE=1)
 
             set "OBJ=!OBJ! %TMP%\%%~nF.obj"
+        )
+
+        if "!COMPILE!" == "1" (
+            for /f "tokens=*" %%a in ('%TOOL_CC% "!FILE!" %CF%') do (echo %%a && set RET=%%a)
+
+            if "!RET!" neq "%%~nxF" (echo %TOOL_CC% "!FILE!" %CF% && pause && exit)
         )
     )
 )
 
+::-----------------------------------------------------
 :: 连接文件
 %TOOL_LNK% %OBJ% %LF%
 
 :: 不成功暂停
-if %errorlevel% neq 0 (
-    pause
-    exit
-)
+if %errorlevel% neq 0 (echo %TOOL_LNK% %OBJ% %LF% && pause && exit)
 
+::-----------------------------------------------------
 ::移动文件到输出目录
-::move失败返回的errorlevel也是0
-set ERR=0
-for /f "tokens=2 delims= " %%i in ('move /y "%TMP%\%NAME%.%EXT%" "%OUT%"') do (set ERR=%%i)
 
-if "!ERR!" neq "1" (
-    echo move /y "%TMP%\%NAME%.%EXT%" "%OUT%" 失败
-    pause
-    exit
-)
+::move失败返回的errorlevel也是0
+for /f "tokens=2 delims= " %%i in ('move /y "%TMP%\%NAME%.%EXT%" "%OUT%"') do (set RET=%%i)
+
+if "!RET!" neq "1" (echo move /y "%TMP%\%NAME%.%EXT%" "%OUT%" 失败 && pause && exit)
