@@ -161,7 +161,7 @@ if "%EXT%" == "exe" (set LF=%LF% /OUT:%TMP%\%NAME%.exe) else if "%EXT%" == "dll"
 ::Ö´ÐÐÃüÁî
 
 if "%2" == "all" (del /q/s "%ROOT%%TMP%\*")
-if "%2" == "run" (start %OUT%\%NAME%.exe && exit)
+if "%2" == "run" (cd %OUT% && start %NAME%.exe && exit)
 if "%2" == "clean" (rd /q/s "%TMP%" && exit)
 
 if not exist "%TMP%" (mkdir "%TMP%")
