@@ -1,0 +1,26 @@
+Microsoft (R) Library Manager Version 14.12.25831.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+用法: LIB [选项] [文件]
+
+  选项:
+
+   /DEF[:文件名]
+   /ERRORREPORT:{NONE|PROMPT|QUEUE|SEND}
+   /EXPORT:符号
+   /EXTRACT:成员名
+   /INCLUDE:符号
+   /LIBPATH:目录
+   /LIST[:文件名]
+   /LTCG
+   /MACHINE:{ARM|ARM64|EBC|X64|X86}
+   /NAME:文件名
+   /NODEFAULTLIB[:库]
+   /NOLOGO
+   /OUT:文件名
+   /REMOVE:成员名
+   /SUBSYSTEM:{BOOT_APPLICATION|CONSOLE|EFI_APPLICATION|
+         EFI_BOOT_SERVICE_DRIVER|EFI_ROM|EFI_RUNTIME_DRIVER|
+         NATIVE|POSIX|WINDOWS|WINDOWSCE}[,#[.##]]
+   /VERBOSE
+   /WX[:NO]

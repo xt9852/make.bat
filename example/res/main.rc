@@ -1,0 +1,69 @@
+﻿/**
+ * Copyright:   2022, XT Tech. Co., Ltd.
+ * File name:   main.rc
+ * Description: 资源描述文件
+ * Author:      张海涛
+ * Version:     0.0.0.1
+ * Code:        UTF-8(BOM)
+ * Date:        2022-01-17
+ * History:     2022-01-17 创建此文件。
+ */
+
+#include <windows.h>
+#include "resource.h"
+
+IDI_GREEN ICON "main.ico"
+
+
+IDC_MENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Test" IDM_TEST
+        MENUITEM "&Exit" IDM_EXIT
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&Help" IDM_HELP
+    END
+END
+
+IDC_ACCELE ACCELERATORS
+BEGIN
+    VK_F1, IDM_HELP, VIRTKEY    // F1
+    "/",   IDM_HELP, ASCII, ALT // CONTROL, SHIFT, ALT
+END
+
+
+1 VERSIONINFO
+FILEVERSION 0,0,0,1
+PRODUCTVERSION 0,0,0,1
+FILEFLAGSMASK 0x3fL
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+#ifdef _DEBUG
+FILEFLAGS 0x1L
+#else
+FILEFLAGS 0x0L
+#endif
+BEGIN
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "CompanyName"
+            VALUE "FileDescription", "文件描述"
+            VALUE "FileVersion", "FileVersion"
+            VALUE "InternalName", "InternalName"
+            VALUE "LegalCopyright", "LegalCopyright"
+            VALUE "OriginalFilename", "OriginalFilename"
+            VALUE "ProductName", "ProductName"
+            VALUE "ProductVersion", "ProductVersion"
+        END
+    END
+END
