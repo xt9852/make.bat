@@ -1,5 +1,4 @@
 ::-----------------------------------------------------
-:: Copyright:   XT Tech. Co., Ltd.
 :: File:        make.bat
 :: Author:      张海涛
 :: Version:     2.0.0
@@ -8,10 +7,22 @@
 :: Description: 调用VS编译工程
 ::-----------------------------------------------------
 
-:: 不显示命令字符串,设置屏幕大小,字体颜色
-@echo off && mode con cols=100 lines=1000 && color 0A
+:: 不显示命令字符串
+@echo off
 
-::-----------------------------------------------------
+:: UTF-8代码页,命令行标题栏右键,属性/字体,Lucida Console,936-简体中文(GB2312)
+@chcp 65001
+
+:: 字体颜色
+@color 0A
+
+:: 设置缓冲区大小,设置窗口大小,命令行标题栏右键,属性/布局,窗口大小
+@mode con COLS=100 LINES=1000
+
+:: 延时变量扩展,如果不设置for的变量将不起作用
+setLocal EnableDelayedExpansion
+
+::----------------------------------------------------------------------------------------------------------
 
 :: 外部参数
 echo ARG=%*
@@ -19,7 +30,7 @@ echo ARG=%*
 if "%1" == "" (echo "Don't have make.ini path" && pause && exit)
 if "%2" == "" (echo "Don't have {all|run|clean|[filename]}" && pause && exit)
 
-::-----------------------------------------------------
+::----------------------------------------------------------------------------------------------------------
 
 :: 程序名称
 set NAME=example
@@ -36,8 +47,11 @@ set DEBUG=n
 :: 字符集:mbcs,unicode,utf8
 set CHARSET=utf8
 
-:: 源文件路径,可多个路径
+:: 源文件目录,将搜索其内的.c,.cpp文件,可多个
 set SRC=.
+
+:: 源文件,可多个
+set FILE=
 
 :: 资源描述文件
 set RES=
@@ -52,13 +66,13 @@ set OUT=.
 set TMP=.\tmp
 
 :: 编译参数
-set CF=
+set CF=/WX /DXT_LOG
 
 :: 链接参数
 set LF=gdi32.lib User32.lib Advapi32.lib Shell32.lib
 
-::-----------------------------------------------------
-:: 读取配置文件make.ini
+::----------------------------------------------------------------------------------------------------------
+:: 查找配置文件make.ini
 
 set MAKE_INI_PATH=%1
 
@@ -67,9 +81,6 @@ set MAKE_INI_PATH=%MAKE_INI_PATH:\= %
 
 :: 计算目录层数
 for %%i in (%MAKE_INI_PATH%) do ( set /a DIR_NUM += 1 )
-
-:: 延时变量扩展
-setLocal EnableDelayedExpansion
 
 :: 从子目录向上查找make.ini文件
 for /l %%i in (%DIR_NUM%, -1, 1) do (
@@ -88,14 +99,25 @@ echo "Don't find make.ini"
 pause
 exit
 
+::----------------------------------------------------------------------------------------------------------
+:: 读取配置文件make.ini
+
 :FIND_MAKE_INI
 
 cd !ROOT!
+echo cd !ROOT!
 
 :: 读取make.ini,以=分割字符,并设置变量
-for /f "tokens=1,2 delims==" %%a in (make.ini) do (set "%%a=%%b" && echo %%a=%%b)
+for /f "tokens=1,* delims==" %%a in (make.ini) do (set "%%a=%%b" && echo %%a=%%b)
 
-::-----------------------------------------------------
+::----------------------------------------------------------------------------------------------------------
+::执行命令
+
+if "%2" == "all" (del /q/s "%ROOT%%TMP%\*" >nul 2>nul)
+if "%2" == "run" (cd %OUT% && start %NAME%.exe && exit)
+if "%2" == "clean" (rd /q/s "%TMP%" && exit) else if not exist "%TMP%" (mkdir "%TMP%")
+
+::----------------------------------------------------------------------------------------------------------
 :: 编译工具
 
 set TOOL_CC=cl.exe
@@ -118,15 +140,16 @@ set PATH_KITS_INCLUDE_UCRT=%PATH_KITS_ROOT%\Windows Kits\10\Include\%KITS_VER%\u
 set PATH_KITS_INCLUDE_SHARED=%PATH_KITS_ROOT%\Windows Kits\10\Include\%KITS_VER%\shared
 set PATH_KITS_LIB_UM=%PATH_KITS_ROOT%\Windows Kits\10\Lib\%KITS_VER%\um\%ARCH%
 set PATH_KITS_LIB_UCRT=%PATH_KITS_ROOT%\Windows Kits\10\Lib\%KITS_VER%\ucrt\%ARCH%
+set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
 
-::-----------------------------------------------------
+::----------------------------------------------------------------------------------------------------------
 :: 设置编译参数
 
 :: 系统头文件路径
 set INCLUDE=/I"%PATH_MSVC_INCLUDE%" /I"%PATH_MSVC_INCLUDE_MFC%" /I"%PATH_KITS_INCLUDE_UM%" /I"%PATH_KITS_INCLUDE_UCRT%" /I"%PATH_KITS_INCLUDE_SHARED%"
 
 :: 编译参数
-set CF=/nologo /c /Gd /FC /W3 /WX /GS- /sdl- /EHsc- /Gm- /permissive- /Zc:wchar_t /Zc:inline /Zc:forScope /fp:precise /diagnostics:column /errorReport:prompt /Fo:"%TMP%/" /Fd:"%TMP%/" %CF% %INCLUDE%
+set CF=/nologo /c /Gd /FC /W3 /GS- /sdl- /EHsc- /Gm- /permissive- /Zc:wchar_t /Zc:inline /Zc:forScope /fp:precise /diagnostics:column /errorReport:prompt /Fo:"%TMP%/" /Fd:"%TMP%/" %CF% %INCLUDE%
 
 :: 程序架构类型:x64,x86
 if "%ARCH%" == "x64" (set CF=%CF% /D"_WINDOWS" /D"_WIN64" /D"X64") else (set CF=%CF% /D"_WINDOWS" /D"_WIN32" /D"WIN32")
@@ -140,7 +163,7 @@ if "%CHARSET%" == "mbcs" (set CF=%CF% /D"_MBCS") else if "%CHARSET%" == "unicode
 :: 编译资源参数
 set RF=%INCLUDE% /nologo /fo"%TMP%\%NAME%.res" "%RES%"
 
-::-----------------------------------------------------
+::----------------------------------------------------------------------------------------------------------
 :: 设置连接参数
 
 :: 系统库路径
@@ -155,68 +178,87 @@ if "%DEBUG%" == "y" (set LF=/DEBUG /INCREMENTAL %LF%) else (set LF=/INCREMENTAL:
 :: 目标类型:exe,dll,lib
 if "%EXT%" == "exe" (set LF=/OUT:"%TMP%\%NAME%.exe" %LF%) else if "%EXT%" == "dll" (set LF=/OUT:"%TMP%\%NAME%.dll" /DLL %LF%) else if "%EXT%" == "lib" (set LF=/OUT:"%TMP%\%NAME%.lib" && set TOOL_LNK=%TOOL_LIB%) else (echo EXT="%EXT% error" && pause && exit)
 
-::-----------------------------------------------------
-::执行命令
-
-if "%2" == "all" (del /q/s "%ROOT%%TMP%\*" >nul 2>nul)
-if "%2" == "run" (cd %OUT% && start %NAME%.exe && exit)
-if "%2" == "clean" (rd /q/s "%TMP%" && exit) else if not exist "%TMP%" (mkdir "%TMP%")
-
-::-----------------------------------------------------
-:: 编译文件
-
-set PATH=%PATH%;%PATH_MSVC_BIN%;%PATH_KITS_BIN%
-
+::----------------------------------------------------------------------------------------------------------
 :: 编译资源文件
 if "%RES%" neq "" (%TOOL_RC% %RF% && set OBJ=%TMP%\%NAME%.res)
 
+::----------------------------------------------------------------------------------------------------------
 :: 编译文件,多个源目录
+
 for %%D in (%SRC%) do (
     for /f %%F in ('dir /s/b %%D') do (
-        set COMPILE=
+        set PROC=
 
         :: 比较扩展名
-        if "%%~xF" == ".c"   (set COMPILE=1)
-        if "%%~xF" == ".cpp"   (set COMPILE=1)
+        if "%%~xF" == ".c"   (set PROC=1)
+        if "%%~xF" == ".cpp" (set PROC=1)
 
-        if "!COMPILE!" == "1" (
-            set FILE=%%F
+        if "!PROC!" == "1" (
+            set FULLNAME=%%F
 
             ::得到文件相对路径名
-            set FILENAME=!FILE:%ROOT%=!
+            set FILENAME=!FULLNAME:%ROOT%=!
 
-            :: 得到第一个目录名,检查是否需要排除
-            for /f "delims=\" %%E in ('echo !FILENAME!') do (set DIR=%%E)
-            echo %EXC% | findstr !DIR! > nul && (echo !FILENAME! exclude dir && set COMPILE=0)
-            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set COMPILE=0)
+            :: 得到第一个目录名
+            for /f "delims=\" %%E in ('echo !FILENAME!') do (set HEAD=%%E)
+
+            :: 检查目录是否需要排除
+            echo %EXC% | findstr !HEAD! > nul && (echo !FILENAME! exclude dir && set PROC=0)
+
+            :: 检查文件是否需要排除
+            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set PROC=0)
         )
 
-        if "!COMPILE!" == "1" (
-            set COMPILE=
-            if "%2" == "all" (set COMPILE=1)
-            if "%2" == "!FILE!" (set COMPILE=1)
-
+        if "!PROC!" == "1" (
+            set PROC=
+            if "%2" == "all" (set PROC=1)
+            if "%2" == "%%F" (set PROC=1)
             set "OBJ=!OBJ! %TMP%\%%~nF.obj"
         )
 
-        if "!COMPILE!" == "1" (
-            for /f "tokens=*" %%a in ('%TOOL_CC% "!FILE!" %CF%') do (echo %%a && set RET=%%a)
-
-            if "!RET!" neq "%%~nxF" (echo %TOOL_CC% "!FILE!" %CF% && pause && exit)
+        if "!PROC!" == "1" (
+            set CMP=%TOOL_CC% "%%F" %CF%
+            !CMP!
+            if !errorlevel! neq 0 ( echo !CMP! && pause && exit )
         )
     )
 )
 
-::-----------------------------------------------------
-:: 连接文件
-%TOOL_LNK% %LF% %OBJ%
+:: 附加的文件
+for %%F in (%FILE%) do (
+    set PROC=
+    if "%2" == "all" (set PROC=1)
+    if "%2" == "%%F" (set PROC=1)
+    set "OBJ=!OBJ! %TMP%\%%~nF.obj"
 
-if %errorlevel% == 0 (
-    ::移动文件到输出目录,move失败返回的errorlevel也是0
-    for /f "tokens=2 delims= " %%i in ('move /y "%TMP%\%NAME%.%EXT%" "%OUT%"') do (set RET=%%i)
-    if "!RET!" neq "1" (echo move /y "%TMP%\%NAME%.%EXT%" "%OUT%" fail)
-) else (
-    echo %TOOL_LNK% %LF% %OBJ%
+    if "!PROC!" == "1" (
+        set CMP=%TOOL_CC% "%%F" %CF%
+        !CMP!
+        if !errorlevel! neq 0 ( echo !CMP! && pause && exit )
+    )
 )
 
-pause
+::----------------------------------------------------------------------------------------------------------
+:: 连接文件
+set LNK=%TOOL_LNK% %LF% %OBJ%
+
+%LNK%
+
+if %errorlevel% neq 0 (
+    echo %LNK%
+    pause
+    exit
+)
+
+::----------------------------------------------------------------------------------------------------------
+:: 移动文件
+
+set MOVE=move /y "%TMP%\%NAME%.%EXT%" "%OUT%"
+
+echo !MOVE!
+
+!MOVE!
+
+if %errorlevel% neq 0 (
+    pause
+)
