@@ -27,8 +27,8 @@ setLocal EnableDelayedExpansion
 :: 外部参数
 echo ARG=%*
 
-if "%1" == "" (echo "Don't have make.ini path" && pause && exit)
-if "%2" == "" (echo "Don't have {all|run|clean|[filename]}" && pause && exit)
+if "%1" == "" (echo "Don't have make.ini path" && pause && exit /b)
+if "%2" == "" (echo "Don't have {all|run|clean|[filename]}" && pause && exit /b)
 
 ::----------------------------------------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ for /l %%i in (%DIR_NUM%, -1, 1) do (
 
 echo "Don't find make.ini"
 pause
-exit
+exit /b
 
 ::----------------------------------------------------------------------------------------------------------
 :: 读取配置文件make.ini
@@ -105,7 +105,7 @@ exit
 :FIND_MAKE_INI
 
 cd !ROOT!
-echo cd !ROOT!
+echo CD !ROOT!
 
 :: 读取make.ini,以=分割字符,并设置变量
 for /f "tokens=1,* delims==" %%a in (make.ini) do (set "%%a=%%b" && echo %%a=%%b)
@@ -114,8 +114,11 @@ for /f "tokens=1,* delims==" %%a in (make.ini) do (set "%%a=%%b" && echo %%a=%%b
 ::执行命令
 
 if "%2" == "all" (del /q/s "%ROOT%%TMP%\*" >nul 2>nul)
-if "%2" == "run" (cd %OUT% && start %NAME%.exe && exit)
-if "%2" == "clean" (rd /q/s "%TMP%" && exit) else if not exist "%TMP%" (mkdir "%TMP%")
+if "%2" == "run" (cd %OUT% && start %NAME%.exe && exit /b)
+if "%2" == "clean" (rd /q/s "%TMP%" && exit / b)
+
+if not exist "%TMP%" (mkdir "%TMP%")
+if not exist "%OUT%" (mkdir "%OUT%")
 
 ::----------------------------------------------------------------------------------------------------------
 :: 编译工具
@@ -125,9 +128,9 @@ set TOOL_ML=ml.exe
 set TOOL_RC=rc.exe
 set TOOL_LIB=lib.exe
 set TOOL_LNK=link.exe
-set PATH_MSVC_ROOT=D:\4.backup\coding\VS2022
+set PATH_MSVC_ROOT=E:\4.backup\coding\VS2022
 set MSVC_VER=14.30.30705
-set PATH_KITS_ROOT=D:\4.backup\coding\VS2022
+set PATH_KITS_ROOT=%PATH_MSVC_ROOT%
 set KITS_VER=10.0.22000.0
 set PATH_MSVC_BIN=%PATH_MSVC_ROOT%\VC\Tools\MSVC\%MSVC_VER%\bin\Hostx64\%ARCH%
 set PATH_MSVC_INCLUDE=%PATH_MSVC_ROOT%\VC\Tools\MSVC\%MSVC_VER%\include
@@ -193,20 +196,22 @@ for %%D in (%SRC%) do (
         if "%%~xF" == ".c"   (set PROC=1)
         if "%%~xF" == ".cpp" (set PROC=1)
 
-        if "!PROC!" == "1" (
+        if !PROC! == 1 (
             set FULLNAME=%%F
 
-            ::得到文件相对路径名
-            set FILENAME=!FULLNAME:%ROOT%=!
+            :: 相对路径名,%%~fD全路径名
+            set RELATIVE=!FULLNAME:%%~fD\=!
 
-            :: 得到第一个目录名
-            for /f "delims=\" %%E in ('echo !FILENAME!') do (set HEAD=%%E)
+            :: 去掉文件名,%%~nxF文件名
+            set MIDDLE=!RELATIVE:%%~nxF=!
 
-            :: 检查目录是否需要排除
-            echo %EXC% | findstr !HEAD! > nul && (echo !FILENAME! exclude dir && set PROC=0)
+            for %%i in (%EXC%) do (
+                :: 排除文件
+                if %%i == %%~nxF (set PROC=0 && echo !RELATIVE! don't compile)
 
-            :: 检查文件是否需要排除
-            echo %EXC% | findstr %%~nxF > nul && (echo !FILENAME! exclude file && set PROC=0)
+                :: 排除目录
+                echo !MIDDLE! | findstr /b %%i > nul && (set PROC=0 && echo !RELATIVE! don't compile %%i)
+            )
         )
 
         if "!PROC!" == "1" (
@@ -219,7 +224,7 @@ for %%D in (%SRC%) do (
         if "!PROC!" == "1" (
             set CMP=%TOOL_CC% "%%F" %CF%
             !CMP!
-            if !errorlevel! neq 0 ( echo !CMP! && pause && exit )
+            if !errorlevel! neq 0 ( echo !CMP! && pause && exit /b )
         )
     )
 )
@@ -234,7 +239,7 @@ for %%F in (%FILE%) do (
     if "!PROC!" == "1" (
         set CMP=%TOOL_CC% "%%F" %CF%
         !CMP!
-        if !errorlevel! neq 0 ( echo !CMP! && pause && exit )
+        if !errorlevel! neq 0 ( echo !CMP! && pause && exit /b )
     )
 )
 
@@ -247,7 +252,7 @@ set LNK=%TOOL_LNK% %LF% %OBJ%
 if %errorlevel% neq 0 (
     echo %LNK%
     pause
-    exit
+    exit /b
 )
 
 ::----------------------------------------------------------------------------------------------------------
